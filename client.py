@@ -14,6 +14,9 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 serveraddress = ('127.0.0.1', 10000)
 
+#PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
+
+
 # Writes message in bytes
 message = b'VARSTRANGFARINTEVARALANGREAN64BYTES_____________________________'
 
@@ -40,7 +43,7 @@ try:
     # Receive server public key
     print ('waiting to receive')
     print('_______________________________________')
-    server_public_key, server = clientsocket.recvfrom(512)
+    server_public_key, server = clientsocket.recvfrom(100)
     print ('received public key from server')
     print('_______________________________________')
     # Prints public key neatly
@@ -64,10 +67,13 @@ try:
     print('Derived key: \n {}'.format(derived_key))
     print('_______________________________________')
 
-    plaintext = input().encode()
+    plaintext = input()
 
     f = Fernet(base64.urlsafe_b64encode(derived_key))
-    ciphertext = f.encrypt(plaintext)
+    ciphertext = f.encrypt(plaintext.encode())
+    print('Sending package of size {} : \n {}'.format(len(ciphertext), ciphertext))
+    print('_______________________________________')
+
     clientsocket.sendto(ciphertext, serveraddress)
 
 finally:

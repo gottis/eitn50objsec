@@ -15,6 +15,11 @@ serveraddress = ("127.0.0.1", 10000)
 
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+#PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
+
+
+
+
 print( 'starting on {} port {}'.format( *serveraddress))
 serversocket.bind(serveraddress)
 
@@ -32,7 +37,7 @@ public_key_in_bytes = public_key.public_bytes(Encoding.X962, PublicFormat.Compre
 while True:
     print('_______________________________________')
     print ('\nwaiting to receive')
-    client_public_key, address = serversocket.recvfrom(512)
+    client_public_key, address = serversocket.recvfrom(100)
     print('_______________________________________')
     print('received {} bytes from {}'.format(len(client_public_key), address))
     print('_______________________________________')
@@ -61,6 +66,11 @@ while True:
         # Verification should be here
         if True:
             print('Verification OK, receiving package')
-            encrypted_data, address = serversocket.recvfrom(512)
+            print('_______________________________________')
+            encrypted_data, address = serversocket.recvfrom(100)
+            print('Encrypted data: \n {}'.format(encrypted_data))
+            print('_______________________________________')
+            print('Size of encrypted data:\n {}'.format(len(encrypted_data)))
+            print('_______________________________________')
             plaintext = f.decrypt(encrypted_data)
             print('Received data from client: {}'.format(plaintext))
