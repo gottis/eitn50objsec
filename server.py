@@ -1,4 +1,5 @@
 import socket
+import select
 import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -12,16 +13,19 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 # Implement nounce to stop replay attacks.
 
 serveraddress = ("127.0.0.1", 10000)
+serveraddress2 = ("127.0.0.1", 10001)
 
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+serversocket2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 #PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
 
-
+storage = []
 
 
 print( 'starting on {} port {}'.format( *serveraddress))
 serversocket.bind(serveraddress)
+serversocket2.bind(serveraddress2)
 
 
 # Generates private key from elliptic curve
@@ -34,10 +38,9 @@ public_key = private_key.public_key()
 #   and together with CompressedPoint we can achieve sufficiently small packages
 public_key_in_bytes = public_key.public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
 
-while True:
-    print('_______________________________________')
-    print ('\nwaiting to receive')
-    client_public_key, address = serversocket.recvfrom(100)
+
+def handleclient(socket):
+    client_public_key, address = socket.recvfrom(100)
     print('_______________________________________')
     print('received {} bytes from {}'.format(len(client_public_key), address))
     print('_______________________________________')
@@ -46,7 +49,8 @@ while True:
 
     if client_public_key:
         print('Client public key {}\n'.format(client_public_key))
-        shared_key = private_key.exchange(ec.ECDH(), ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(), client_public_key))
+        shared_key = private_key.exchange(ec.ECDH(), ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(),
+                                                                                                  client_public_key))
         print('_______________________________________')
         print('Computed shared key with {}:\n {}'.format(address, shared_key))
         print('_______________________________________')
@@ -57,10 +61,10 @@ while True:
             algorithm=hashes.SHA256(),
             length=32,
             salt=None,
-            info = b'encryption key',
+            info=b'encryption key',
             backend=default_backend()
         ).derive(shared_key)
-        f = Fernet( base64.urlsafe_b64encode(derived_key))
+        f = Fernet(base64.urlsafe_b64encode(derived_key))
         print('Derived key: \n {}'.format(derived_key))
 
         # Verification should be here
@@ -74,3 +78,26 @@ while True:
             print('_______________________________________')
             plaintext = f.decrypt(encrypted_data)
             print('Received data from client: {}'.format(plaintext))
+            storage.append(plaintext)
+
+
+def sendstored(socket):
+    client2_data, client2_address = socket.recvfrom(100)
+    print(f"recieved {client2_data} from {client2_address}")
+    for data in storage:
+        print(f"trying to send {data} to {client2_address}")
+        socket.sendto(data, client2_address)
+
+
+while True:
+    print('_______________________________________')
+    print('\nwaiting to receive')
+    readable, writeable, errors = select.select([serversocket, serversocket2], [], [])
+    for s in readable:
+        if s == serversocket:
+            print("Awoken by socket1")
+            handleclient(s)
+        else:
+            print("Awoken by socket2")
+            sendstored(s)
+
