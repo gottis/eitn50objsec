@@ -1,5 +1,6 @@
 import socket
 import select
+import time
 import base64
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -22,6 +23,8 @@ serversocket2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 
 storage = []
+timestamps = []
+removetime = time.time()
 
 print('starting on {} port {}'.format(*serveraddress))
 serversocket.bind(serveraddress)
@@ -104,13 +107,24 @@ def storedata(socket, f):
 
             if len(encrypted_data) < 64:
                 control = 1
-        plaintext = f.decrypt(encrypted_data_total).decode()
+        plaintext = f.decrypt(encrypted_data_total, 10).decode()
+
+        timestamp = f.extract_timestamp(encrypted_data_total)
+
+        if timestamp in timestamps:
+            print("Get to the chopper! We're getting hacked!")
+        else:
+            timestamps.append(timestamp)
+
         storage.append(plaintext)
 
         print('Received data from client: {}'.format(plaintext))
 
 
 while True:
+    if time.time() - removetime > 10000:
+        timestamps.clear()
+        removetime = time.time()
     print('_______________________________________')
     print('\nwaiting to receive')
     readable, writeable, errors = select.select([serversocket, serversocket2], [], [])
