@@ -44,7 +44,7 @@ def handleclient(socket):
     print('_______________________________________')
     print('received {} bytes from {}'.format(len(client_public_key), address))
     print('_______________________________________')
-    sent = serversocket.sendto(public_key_in_bytes, address)
+    sent = socket.sendto(public_key_in_bytes, address)
     print('sent {} bytes back to {}'.format(sent, address))
 
     if client_public_key:
@@ -66,27 +66,32 @@ def handleclient(socket):
         ).derive(shared_key)
         f = Fernet(base64.urlsafe_b64encode(derived_key))
         print('Derived key: \n {}'.format(derived_key))
-
-        # Verification should be here
-        if True:
-            print('Verification OK, receiving package')
-            print('_______________________________________')
-            encrypted_data, address = serversocket.recvfrom(100)
-            print('Encrypted data: \n {}'.format(encrypted_data))
-            print('_______________________________________')
-            print('Size of encrypted data:\n {}'.format(len(encrypted_data)))
-            print('_______________________________________')
-            plaintext = f.decrypt(encrypted_data)
-            print('Received data from client: {}'.format(plaintext))
-            storage.append(plaintext)
+        return f
 
 
-def sendstored(socket):
+def sendstored(socket, f):
     client2_data, client2_address = socket.recvfrom(100)
     print(f"recieved {client2_data} from {client2_address}")
+    print(f"{len(storage)} packets stored")
+    socket.sendto(f.encrypt(str(len(storage)).encode()), client2_address)
     for data in storage:
         print(f"trying to send {data} to {client2_address}")
-        socket.sendto(data, client2_address)
+        socket.sendto(f.encrypt(data.encode()), client2_address)
+
+
+def storedata(socket, f):
+    # Verification should be here
+    if True:
+        print('Verification OK, receiving package')
+        print('_______________________________________')
+        encrypted_data, address = socket.recvfrom(100)
+        print('Encrypted data: \n {}'.format(encrypted_data))
+        print('_______________________________________')
+        print('Size of encrypted data:\n {}'.format(len(encrypted_data)))
+        print('_______________________________________')
+        plaintext = f.decrypt(encrypted_data)
+        print('Received data from client: {}'.format(plaintext))
+        storage.append(plaintext)
 
 
 while True:
@@ -96,8 +101,14 @@ while True:
     for s in readable:
         if s == serversocket:
             print("Awoken by socket1")
-            handleclient(s)
+            fernet = handleclient(s)
+            print("Handshake with client1 finished")
+            storedata(s, fernet)
+            print(f"Stored recieved data {storage}")
         else:
             print("Awoken by socket2")
-            sendstored(s)
+            fernet = handleclient(s)
+            print("Handshake with client2 finished")
+            sendstored(s, fernet)
+            print(f"Sent stored data {storage}")
 
