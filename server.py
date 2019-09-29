@@ -18,7 +18,7 @@ serveraddress2 = ("127.0.0.1", 10001)
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 serversocket2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-#PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
+#   PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
 
 storage = []
 
@@ -76,7 +76,7 @@ def sendstored(socket, f):
     socket.sendto(f.encrypt(str(len(storage)).encode()), client2_address)
     for data in storage:
         print(f"trying to send {data} to {client2_address}")
-        socket.sendto(f.encrypt(data.encode()), client2_address)
+        socket.sendto(f.encrypt(data), client2_address)
 
 
 def storedata(socket, f):
@@ -84,14 +84,25 @@ def storedata(socket, f):
     if True:
         print('Verification OK, receiving package')
         print('_______________________________________')
-        encrypted_data, address = socket.recvfrom(100)
-        print('Encrypted data: \n {}'.format(encrypted_data))
-        print('_______________________________________')
-        print('Size of encrypted data:\n {}'.format(len(encrypted_data)))
-        print('_______________________________________')
-        plaintext = f.decrypt(encrypted_data)
-        print('Received data from client: {}'.format(plaintext))
+
+        control = 0
+        while control == 0:
+            encrypted_data, address = serversocket.recvfrom(64)
+            head_list = [x for x in encrypted_data[0:4]]
+            print(head_list)
+            # plaintext = f.decrypt(encrypted_data)
+            # timestamp = f.extract_timestamp(encrypted_data)
+            encrypted_data_total = 0
+            encrypted_data_total = encrypted_data_total + encrypted_data[4:64]
+
+            if len(data) < 64:
+                plaintext = f.decrypt(encrypted_data_total)
+                control = 1
+
         storage.append(plaintext)
+
+        print('Received data from client: {}'.format(plaintext))
+
 
 
 while True:

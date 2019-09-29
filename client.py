@@ -68,13 +68,21 @@ try:
     print('_______________________________________')
 
     plaintext = input()
-
     f = Fernet(base64.urlsafe_b64encode(derived_key))
     ciphertext = f.encrypt(plaintext.encode())
-    print('Sending package of size {} : \n {}'.format(len(ciphertext), ciphertext))
-    print('_______________________________________')
 
-    clientsocket.sendto(ciphertext, serveraddress)
+    head_list = [1, 1, 1, 1]
+
+    for value in range(0, len(ciphertext), 60):
+        print(head_list[1])
+
+        send_pack = bytearray(head_list) + ciphertext[value:value + 60]
+        clientsocket.sendto(send_pack, serveraddress)
+        head_list[1] = head_list[1] + 1
+        head_list[2] = head_list[2] + 1
+        print('Sending package of size {} : \n {}'.format(len(send_pack), send_pack))
+        print('_______________________________________')
+        clientsocket.sendto(ciphertext, serveraddress)
 
 finally:
     print ("closing socket")
