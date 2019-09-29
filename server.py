@@ -86,19 +86,17 @@ def storedata(socket, f):
         print('_______________________________________')
 
         control = 0
+        encrypted_data_total = b''
         while control == 0:
             encrypted_data, address = serversocket.recvfrom(64)
             head_list = [x for x in encrypted_data[0:4]]
             print(head_list)
-            # plaintext = f.decrypt(encrypted_data)
-            # timestamp = f.extract_timestamp(encrypted_data)
-            encrypted_data_total = 0
-            encrypted_data_total = encrypted_data_total + encrypted_data[4:64]
+            encrypted_data_total = encrypted_data_total + encrypted_data[4:]
 
-            if len(data) < 64:
-                plaintext = f.decrypt(encrypted_data_total)
+            if len(encrypted_data) < 64:
+                print(encrypted_data_total)
                 control = 1
-
+        plaintext = f.decrypt(encrypted_data_total)
         storage.append(plaintext)
 
         print('Received data from client: {}'.format(plaintext))
