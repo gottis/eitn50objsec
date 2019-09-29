@@ -1,0 +1,10 @@
+@startuml
+Server -> Cache: Send public key
+Cache -> Server: Send public key
+Server -> Cache: Send data
+Cache --> Cache: Store data
+Client -> Cache: Send public key
+Cache -> Client: Send public key
+Client -> Cache: Request data
+Cache -> Client: Send data
+@enduml
