@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 # Implement nounce to stop replay attacks.
 # Make sure data transfer does not exceed 64bytes per package
 
-serveraddress = ('127.0.0.1', 10000)
+serveraddress = ('127.0.0.1', 10001)
 
 #PSK = b'd7xmxmydueRaiHTiEaS0pa8gsGnhgNJXMR82NWE_cbo='
 
@@ -67,23 +67,31 @@ try:
     print('Derived key: \n {}'.format(derived_key))
     print('_______________________________________')
 
-    plaintext = input()
     f = Fernet(base64.urlsafe_b64encode(derived_key))
-    ciphertext = f.encrypt(plaintext.encode())
-
-    head_list = [1, 1, 1, 1]
-
-    for value in range(0, len(ciphertext), 60):
-        print(head_list[1])
-
-        send_pack = bytearray(head_list) + ciphertext[value:value + 60]
-        clientsocket.sendto(send_pack, serveraddress)
-        head_list[1] = head_list[1] + 1
-        head_list[2] = head_list[2] + 1
-        print('Sending package of size {} : \n {}'.format(len(send_pack), send_pack))
-        print('_______________________________________')
-        clientsocket.sendto(ciphertext, serveraddress)
 
 finally:
-    print ("closing socket")
+    print("Sending request for data")
+    clientsocket.sendto("gif data please".encode(), serveraddress)
+    print("waiting to recieve")
+    data = clientsocket.recvfrom(100)[0]
+    data = int(f.decrypt(data).decode())
+    print(f"Server has {data} packets in storage")
+
+    for i in range(data):
+        control = 0
+        encrypted_data_total = b''
+        while control == 0:
+            packet = clientsocket.recvfrom(100)[0]
+            head_list = [x for x in packet[0:4]]
+            encrypted_data_total = encrypted_data_total + packet[4:]
+
+            if len(packet) < 64:
+                control = 1
+        plaintext = f.decrypt(encrypted_data_total)
+        print('Received data from client: {}'.format(plaintext.decode()))
+
+
+        # print(f"Packet {i}: {packet}")
+
+    print("closing socket")
     clientsocket.close()
